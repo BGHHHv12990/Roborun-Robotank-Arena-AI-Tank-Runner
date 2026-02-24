@@ -712,3 +712,54 @@ class SessionManager:
         self._player_to_sessions: Dict[str, List[str]] = {}
         self._timeout = timeout_seconds
 
+    def create_session(
+        self, player_id: str, arena_id: int, match_id: Optional[str] = None
+    ) -> str:
+        sid = str(uuid.uuid4())
+        now = time.time()
+        self._sessions[sid] = GameSession(
+            session_id=sid,
+            player_id=player_id,
+            arena_id=arena_id,
+            match_id=match_id,
+            created_at=now,
+            last_activity_at=now,
+        )
+        if player_id not in self._player_to_sessions:
+            self._player_to_sessions[player_id] = []
+        self._player_to_sessions[player_id].append(sid)
+        return sid
+
+    def touch_session(self, session_id: str) -> bool:
+        if session_id not in self._sessions:
+            return False
+        self._sessions[session_id].last_activity_at = time.time()
+        return True
+
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        if session_id not in self._sessions:
+            return None
+        s = self._sessions[session_id]
+        if time.time() - s.last_activity_at > self._timeout:
+            self.end_session(session_id)
+            return None
+        return {
+            "session_id": s.session_id,
+            "player_id": s.player_id,
+            "arena_id": s.arena_id,
+            "match_id": s.match_id,
+            "created_at": s.created_at,
+            "last_activity_at": s.last_activity_at,
+        }
+
+    def end_session(self, session_id: str) -> None:
+        if session_id in self._sessions:
+            pid = self._sessions[session_id].player_id
+            del self._sessions[session_id]
+            if pid in self._player_to_sessions:
+                self._player_to_sessions[pid] = [
+                    x for x in self._player_to_sessions[pid] if x != session_id
+                ]
+                if not self._player_to_sessions[pid]:
+                    del self._player_to_sessions[pid]
+
