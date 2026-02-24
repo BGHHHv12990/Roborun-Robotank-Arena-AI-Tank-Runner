@@ -253,3 +253,54 @@ class RoborunRobotankArenaEngine:
         self.state.arena_bounty_pool[arena_id] = 0
         return arena_id
 
+    def get_arena(self, arena_id: int) -> Optional[Dict[str, Any]]:
+        if arena_id not in self.state.arenas:
+            return None
+        ar = self.state.arenas[arena_id]
+        return {
+            "arena_id": ar.arena_id,
+            "start_tick": ar.start_tick,
+            "phase": ar.phase,
+            "terminated": ar.terminated,
+            "bounty_claimed": ar.bounty_claimed,
+            "created_at": ar.created_at,
+        }
+
+    def advance_arena_phase(self, arena_id: int, caller: str) -> int:
+        self._require_operator(caller)
+        if arena_id not in self.state.arenas:
+            raise ArenaEngineArenaNotFound()
+        ar = self.state.arenas[arena_id]
+        if ar.terminated:
+            raise ArenaEngineArenaPaused()
+        if ar.phase >= MAX_PHASE_INDEX:
+            raise ArenaEnginePhaseLocked()
+        from_phase = ar.phase
+        ar.phase = from_phase + 1
+        self.state.arena_phase[arena_id] = ar.phase
+        return ar.phase
+
+    def assign_platoon_slot(
+        self, arena_id: int, player_id: str, slot: int, caller: str
+    ) -> None:
+        self._require_operator(caller)
+        if arena_id not in self.state.arenas:
+            raise ArenaEngineArenaNotFound()
+        if not player_id:
+            raise ArenaEngineZeroDisallowed()
+        if slot >= MAX_PLATOON_SIZE:
+            raise ArenaEnginePlatoonFull()
+        ar = self.state.arenas[arena_id]
+        if ar.terminated:
+            raise ArenaEnginePhaseLocked()
+        key = self._platoon_key(arena_id, slot)
+        if key in self.state.platoon_slots and self.state.platoon_slots[key].active:
+            raise ArenaEnginePlatoonFull()
+        self.state.global_tick += 1
+        tick = self.state.global_tick
+        self.state.platoon_slots[key] = PlatoonSlot(
+            player_id=player_id,
+            enlisted_at_tick=tick,
+            active=True,
+            battery_level=DEFAULT_STARTING_BATTERY,
+            last_fire_tick=0,
