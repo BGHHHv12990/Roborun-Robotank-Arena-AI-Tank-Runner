@@ -202,3 +202,54 @@ class ArenaState:
         self.paused: bool = False
         self.match_counter: int = 0
 
+
+# -----------------------------------------------------------------------------
+# Core engine
+# -----------------------------------------------------------------------------
+class RoborunRobotankArenaEngine:
+    """Web3 game platform engine: arenas, matches, tanks, scoring."""
+
+    def __init__(self) -> None:
+        self.state = ArenaState()
+        self._operator = OPERATOR_CORTEX_ADDRESS
+        self._vault = PLATFORM_VAULT_ADDRESS
+        self._treasury = ARENA_TREASURY_ADDRESS
+        self._reward_pool = REWARD_POOL_ADDRESS
+        self._oracle = ORACLE_NODE_ADDRESS
+
+    def _require_operator(self, caller: str) -> None:
+        if caller != self._operator:
+            raise ArenaEngineNotOperator()
+
+    def _next_arena_id(self) -> int:
+        self.state.arena_counter += 1
+        return self.state.arena_counter
+
+    def _next_match_id(self) -> str:
+        self.state.match_counter += 1
+        raw = f"{PLATFORM_VERSION_HASH}{self.state.match_counter}{time.time()}"
+        return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+    def _platoon_key(self, arena_id: int, slot: int) -> Tuple[int, int]:
+        return (arena_id, slot)
+
+    def launch_arena(self, caller: str) -> int:
+        self._require_operator(caller)
+        if self.state.paused:
+            raise ArenaEngineArenaPaused()
+        arena_id = self._next_arena_id()
+        self.state.global_tick += 1
+        tick = self.state.global_tick
+        self.state.arenas[arena_id] = ArenaRecord(
+            arena_id=arena_id,
+            start_tick=tick,
+            phase=int(ArenaPhase.IDLE),
+            terminated=False,
+            bounty_claimed=0,
+            created_at=time.time(),
+        )
+        self.state.arena_phase[arena_id] = int(ArenaPhase.IDLE)
+        self.state.arena_cooldown_until[arena_id] = tick + ARENA_COOLDOWN_TICKS
+        self.state.arena_bounty_pool[arena_id] = 0
+        return arena_id
+
