@@ -355,3 +355,54 @@ class RoborunRobotankArenaEngine:
         if amount <= 0:
             raise ArenaEngineInvalidAmount()
         self.state.arena_bounty_pool[arena_id] = (
+            self.state.arena_bounty_pool.get(arena_id, 0) + amount
+        )
+
+    def claim_bounty(self, arena_id: int, caller: str) -> int:
+        self._require_operator(caller)
+        if arena_id not in self.state.arenas:
+            raise ArenaEngineArenaNotFound()
+        ar = self.state.arenas[arena_id]
+        if ar.terminated:
+            raise ArenaEngineArenaPaused()
+        if self.state.global_tick < self.state.arena_cooldown_until.get(arena_id, 0):
+            raise ArenaEngineCooldownActive()
+        pool = self.state.arena_bounty_pool.get(arena_id, 0)
+        if pool <= 0:
+            raise ArenaEngineInvalidAmount()
+        self.state.arena_bounty_pool[arena_id] = 0
+        ar.bounty_claimed += pool
+        self.state.total_bounties_paid += pool
+        self.state.arena_cooldown_until[arena_id] = (
+            self.state.global_tick + ARENA_COOLDOWN_TICKS
+        )
+        return pool
+
+    def terminate_arena(self, arena_id: int, caller: str) -> None:
+        self._require_operator(caller)
+        if arena_id not in self.state.arenas:
+            raise ArenaEngineArenaNotFound()
+        self.state.arenas[arena_id].terminated = True
+
+    def flip_pause(self, caller: str) -> bool:
+        self._require_operator(caller)
+        self.state.paused = not self.state.paused
+        return self.state.paused
+
+    def get_platoon_slot(
+        self, arena_id: int, slot: int
+    ) -> Optional[Dict[str, Any]]:
+        if arena_id not in self.state.arenas:
+            return None
+        key = self._platoon_key(arena_id, slot)
+        if key not in self.state.platoon_slots:
+            return None
+        pm = self.state.platoon_slots[key]
+        return {
+            "player_id": pm.player_id,
+            "enlisted_at_tick": pm.enlisted_at_tick,
+            "active": pm.active,
+            "battery_level": pm.battery_level,
+            "last_fire_tick": pm.last_fire_tick,
+        }
+
