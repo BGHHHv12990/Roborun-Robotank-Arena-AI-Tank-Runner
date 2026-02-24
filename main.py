@@ -304,3 +304,54 @@ class RoborunRobotankArenaEngine:
             active=True,
             battery_level=DEFAULT_STARTING_BATTERY,
             last_fire_tick=0,
+        )
+        self.state.unit_to_platoon_slot[player_id] = slot
+        if player_id not in self.state.chassis_stats:
+            self.state.chassis_stats[player_id] = ChassisStats()
+
+    def fire_turret(
+        self, arena_id: int, player_id: str, damage: int, current_tick: int
+    ) -> None:
+        if arena_id not in self.state.arenas:
+            raise ArenaEngineArenaNotFound()
+        if not player_id:
+            raise ArenaEngineZeroDisallowed()
+        slot = self.state.unit_to_platoon_slot.get(player_id, -1)
+        if slot < 0:
+            raise ArenaEngineChassisNotFound()
+        key = self._platoon_key(arena_id, slot)
+        if key not in self.state.platoon_slots:
+            raise ArenaEngineChassisNotFound()
+        pm = self.state.platoon_slots[key]
+        if pm.player_id != player_id:
+            raise ArenaEngineChassisNotFound()
+        if pm.battery_level < MIN_BATTERY_TO_FIRE:
+            raise ArenaEngineBatteryDepleted()
+        if pm.last_fire_tick != 0 and current_tick < pm.last_fire_tick + TICK_MODULUS:
+            raise ArenaEngineCooldownActive()
+        pm.battery_level = max(0, pm.battery_level - BATTERY_DRAIN_PER_TICK * 2)
+        pm.last_fire_tick = current_tick
+        if player_id not in self.state.chassis_stats:
+            self.state.chassis_stats[player_id] = ChassisStats()
+        cs = self.state.chassis_stats[player_id]
+        cs.damage_dealt += damage if damage > 0 else DAMAGE_PER_TURRET_FIRE
+        cs.last_fire_tick = current_tick
+
+    def charge_battery(self, player_id: str, amount: int, caller: str) -> None:
+        self._require_operator(caller)
+        if not player_id:
+            raise ArenaEngineZeroDisallowed()
+        if player_id not in self.state.chassis_stats and player_id not in self.state.unit_to_platoon_slot:
+            raise ArenaEngineChassisNotFound()
+        if player_id not in self.state.chassis_stats:
+            self.state.chassis_stats[player_id] = ChassisStats()
+        # Event-only in this engine; actual battery is in platoon slot per-arena
+        pass
+
+    def seed_bounty_pool(self, arena_id: int, amount: int, caller: str) -> None:
+        self._require_operator(caller)
+        if arena_id not in self.state.arenas:
+            raise ArenaEngineArenaNotFound()
+        if amount <= 0:
+            raise ArenaEngineInvalidAmount()
+        self.state.arena_bounty_pool[arena_id] = (
