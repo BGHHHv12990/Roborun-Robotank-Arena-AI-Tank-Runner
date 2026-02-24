@@ -151,3 +151,54 @@ class ArenaRecord:
 
 @dataclass
 class MatchRecord:
+    match_id: str
+    arena_id: int
+    status: int
+    start_tick: int
+    end_tick: int
+    winner_player_id: Optional[str]
+    participants: List[str] = field(default_factory=list)
+    scores: Dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
+class PlayerProfile:
+    player_id: str
+    wallet_ref: str
+    total_score: int
+    total_matches: int
+    total_wins: int
+    chassis_stats: ChassisStats
+    last_seen_at: float
+
+
+@dataclass
+class LeaderboardEntry:
+    rank: int
+    player_id: str
+    wallet_ref: str
+    total_score: int
+    wins: int
+    matches: int
+
+
+# -----------------------------------------------------------------------------
+# In-memory state (simulates chain / DB)
+# -----------------------------------------------------------------------------
+class ArenaState:
+    def __init__(self) -> None:
+        self.arenas: Dict[int, ArenaRecord] = {}
+        self.arena_phase: Dict[int, int] = {}
+        self.arena_cooldown_until: Dict[int, int] = {}
+        self.arena_bounty_pool: Dict[int, int] = {}
+        self.platoon_slots: Dict[Tuple[int, int], PlatoonSlot] = {}
+        self.unit_to_platoon_slot: Dict[str, int] = {}
+        self.chassis_stats: Dict[str, ChassisStats] = {}
+        self.matches: Dict[str, MatchRecord] = {}
+        self.players: Dict[str, PlayerProfile] = {}
+        self.arena_counter: int = 0
+        self.global_tick: int = 0
+        self.total_bounties_paid: int = 0
+        self.paused: bool = False
+        self.match_counter: int = 0
+
