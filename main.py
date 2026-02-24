@@ -610,3 +610,54 @@ def _compute_cue_id(payload: str, nonce: int) -> str:
 
 def _compute_arena_domain(arena_id: int) -> str:
     raw = f"{ARENA_DOMAIN_SALT}{arena_id}{PLATFORM_VERSION_HASH}"
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def _validate_arena_id(arena_id: int) -> bool:
+    return isinstance(arena_id, int) and 1 <= arena_id <= MAX_ACTIVE_ARENAS * 2
+
+
+def _validate_slot(slot: int) -> bool:
+    return isinstance(slot, int) and 0 <= slot < MAX_PLATOON_SIZE
+
+
+def _validate_player_id(player_id: str) -> bool:
+    return (
+        isinstance(player_id, str)
+        and len(player_id) >= 1
+        and len(player_id) <= 256
+    )
+
+
+def _validate_amount(amount: int) -> bool:
+    return isinstance(amount, int) and amount >= 0
+
+
+# -----------------------------------------------------------------------------
+# Event log (simulated on-chain events for web3 platform)
+# -----------------------------------------------------------------------------
+@dataclass
+class PlatformEvent:
+    event_type: str
+    payload: Dict[str, Any]
+    tick: int
+    timestamp: float
+    event_id: str
+
+
+class EventLog:
+    def __init__(self, max_events: int = 10000) -> None:
+        self._events: List[PlatformEvent] = []
+        self._max_events = max_events
+
+    def emit(self, event_type: str, payload: Dict[str, Any], tick: int) -> str:
+        eid = str(uuid.uuid4())
+        self._events.append(
+            PlatformEvent(
+                event_type=event_type,
+                payload={**payload, "event_id": eid},
+                tick=tick,
+                timestamp=time.time(),
+                event_id=eid,
+            )
+        )
