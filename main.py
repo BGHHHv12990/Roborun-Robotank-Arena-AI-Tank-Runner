@@ -406,3 +406,54 @@ class RoborunRobotankArenaEngine:
             "last_fire_tick": pm.last_fire_tick,
         }
 
+    def get_chassis_stats(self, player_id: str) -> Optional[Dict[str, Any]]:
+        if player_id not in self.state.chassis_stats:
+            return None
+        cs = self.state.chassis_stats[player_id]
+        return {
+            "damage_dealt": cs.damage_dealt,
+            "battles_won": cs.battles_won,
+            "last_fire_tick": cs.last_fire_tick,
+            "checkpoints_hit": cs.checkpoints_hit,
+        }
+
+    def get_arena_bounty_pool(self, arena_id: int) -> int:
+        return self.state.arena_bounty_pool.get(arena_id, 0)
+
+    def get_cooldown_until(self, arena_id: int) -> int:
+        return self.state.arena_cooldown_until.get(arena_id, 0)
+
+    def arena_counter(self) -> int:
+        return self.state.arena_counter
+
+    def total_bounties_paid(self) -> int:
+        return self.state.total_bounties_paid
+
+    def is_paused(self) -> bool:
+        return self.state.paused
+
+    def global_tick(self) -> int:
+        return self.state.global_tick
+
+    def tick_forward(self) -> int:
+        self.state.global_tick += 1
+        return self.state.global_tick
+
+
+# -----------------------------------------------------------------------------
+# Matchmaking and matches
+# -----------------------------------------------------------------------------
+class MatchmakingEngine:
+    def __init__(self, arena_engine: RoborunRobotankArenaEngine) -> None:
+        self.engine = arena_engine
+        self.state = arena_engine.state
+
+    def create_match(self, arena_id: int, participant_ids: List[str]) -> str:
+        if arena_id not in self.state.arenas:
+            raise ArenaEngineArenaNotFound()
+        if len(participant_ids) > MAX_PLATOON_SIZE:
+            raise ArenaEnginePlatoonFull()
+        match_id = self.engine._next_match_id()
+        tick = self.engine.global_tick()
+        self.state.matches[match_id] = MatchRecord(
+            match_id=match_id,
