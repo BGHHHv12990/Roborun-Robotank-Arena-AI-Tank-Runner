@@ -49,3 +49,54 @@ SCORE_PER_CHECKPOINT = 50
 SCORE_PER_KILL = 100
 LEADERBOARD_TOP_N = 100
 SESSION_TIMEOUT_SECONDS = 3600
+
+
+class ArenaPhase(IntEnum):
+    IDLE = 0
+    WARMUP = 1
+    ENGAGED = 2
+    PEAK = 3
+    CLOSURE = 4
+    SETTLE = 5
+    TERMINAL = 6
+
+
+class MatchStatus(IntEnum):
+    PENDING = 0
+    ACTIVE = 1
+    FINISHED = 2
+    CANCELLED = 3
+
+
+# -----------------------------------------------------------------------------
+# Platform exceptions (unique names, not Tank*, Ledger_*, RigCue_*, etc.)
+# -----------------------------------------------------------------------------
+class ArenaEngineNotOperator(Exception):
+    """Caller is not the operator cortex."""
+
+
+class ArenaEngineArenaNotFound(Exception):
+    """Arena id does not exist."""
+
+
+class ArenaEngineArenaPaused(Exception):
+    """Arena is paused."""
+
+
+class ArenaEnginePhaseLocked(Exception):
+    """Phase transition not allowed."""
+
+
+class ArenaEnginePlatoonFull(Exception):
+    """Platoon slot capacity reached."""
+
+
+class ArenaEngineBatteryDepleted(Exception):
+    """Chassis battery too low for action."""
+
+
+class ArenaEngineCooldownActive(Exception):
+    """Turret or action still on cooldown."""
+
+
+class ArenaEngineChassisNotFound(Exception):
