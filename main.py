@@ -661,3 +661,54 @@ class EventLog:
                 event_id=eid,
             )
         )
+        while len(self._events) > self._max_events:
+            self._events.pop(0)
+        return eid
+
+    def get_recent(self, limit: int = 100) -> List[Dict[str, Any]]:
+        out = []
+        for e in self._events[-limit:]:
+            out.append(
+                {
+                    "event_type": e.event_type,
+                    "payload": e.payload,
+                    "tick": e.tick,
+                    "timestamp": e.timestamp,
+                    "event_id": e.event_id,
+                }
+            )
+        return list(reversed(out))
+
+    def get_by_type(self, event_type: str, limit: int = 50) -> List[Dict[str, Any]]:
+        out = [e for e in self._events if e.event_type == event_type][-limit:]
+        return [
+            {
+                "event_type": e.event_type,
+                "payload": e.payload,
+                "tick": e.tick,
+                "timestamp": e.timestamp,
+                "event_id": e.event_id,
+            }
+            for e in reversed(out)
+        ]
+
+
+# -----------------------------------------------------------------------------
+# Session manager (player sessions for web3 game)
+# -----------------------------------------------------------------------------
+@dataclass
+class GameSession:
+    session_id: str
+    player_id: str
+    arena_id: int
+    match_id: Optional[str]
+    created_at: float
+    last_activity_at: float
+
+
+class SessionManager:
+    def __init__(self, timeout_seconds: int = SESSION_TIMEOUT_SECONDS) -> None:
+        self._sessions: Dict[str, GameSession] = {}
+        self._player_to_sessions: Dict[str, List[str]] = {}
+        self._timeout = timeout_seconds
+
