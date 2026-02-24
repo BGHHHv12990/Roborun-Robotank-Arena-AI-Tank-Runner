@@ -457,3 +457,54 @@ class MatchmakingEngine:
         tick = self.engine.global_tick()
         self.state.matches[match_id] = MatchRecord(
             match_id=match_id,
+            arena_id=arena_id,
+            status=int(MatchStatus.ACTIVE),
+            start_tick=tick,
+            end_tick=0,
+            winner_player_id=None,
+            participants=list(participant_ids),
+            scores={p: 0 for p in participant_ids},
+        )
+        return match_id
+
+    def get_match(self, match_id: str) -> Optional[Dict[str, Any]]:
+        if match_id not in self.state.matches:
+            return None
+        m = self.state.matches[match_id]
+        return {
+            "match_id": m.match_id,
+            "arena_id": m.arena_id,
+            "status": m.status,
+            "start_tick": m.start_tick,
+            "end_tick": m.end_tick,
+            "winner_player_id": m.winner_player_id,
+            "participants": m.participants,
+            "scores": dict(m.scores),
+        }
+
+    def add_match_score(self, match_id: str, player_id: str, points: int) -> None:
+        if match_id not in self.state.matches:
+            raise ArenaEngineMatchNotFound()
+        m = self.state.matches[match_id]
+        if m.status != int(MatchStatus.ACTIVE):
+            raise ArenaEngineMatchNotActive()
+        if player_id not in m.scores:
+            m.scores[player_id] = 0
+        m.scores[player_id] += points
+
+    def finish_match(self, match_id: str, winner_player_id: Optional[str]) -> None:
+        if match_id not in self.state.matches:
+            raise ArenaEngineMatchNotFound()
+        m = self.state.matches[match_id]
+        if m.status != int(MatchStatus.ACTIVE):
+            raise ArenaEngineMatchNotActive()
+        m.status = int(MatchStatus.FINISHED)
+        m.end_tick = self.engine.global_tick()
+        m.winner_player_id = winner_player_id
+        for pid in m.participants:
+            if pid in self.state.chassis_stats:
+                self.state.chassis_stats[pid].battles_won += (
+                    1 if pid == winner_player_id else 0
+                )
+            if pid not in self.state.players:
+                continue
