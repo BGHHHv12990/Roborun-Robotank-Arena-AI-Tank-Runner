@@ -100,3 +100,54 @@ class ArenaEngineCooldownActive(Exception):
 
 
 class ArenaEngineChassisNotFound(Exception):
+    """Chassis or player not registered."""
+
+
+class ArenaEngineMatchNotFound(Exception):
+    """Match id does not exist."""
+
+
+class ArenaEngineMatchNotActive(Exception):
+    """Match is not in active state."""
+
+
+class ArenaEngineInvalidAmount(Exception):
+    """Amount or value out of bounds."""
+
+
+class ArenaEngineZeroDisallowed(Exception):
+    """Zero address or zero value not allowed."""
+
+
+# -----------------------------------------------------------------------------
+# Data models
+# -----------------------------------------------------------------------------
+@dataclass
+class ChassisStats:
+    damage_dealt: int = 0
+    battles_won: int = 0
+    last_fire_tick: int = 0
+    checkpoints_hit: int = 0
+
+
+@dataclass
+class PlatoonSlot:
+    player_id: str
+    enlisted_at_tick: int
+    active: bool
+    battery_level: int
+    last_fire_tick: int
+
+
+@dataclass
+class ArenaRecord:
+    arena_id: int
+    start_tick: int
+    phase: int
+    terminated: bool
+    bounty_claimed: int
+    created_at: float
+
+
+@dataclass
+class MatchRecord:
