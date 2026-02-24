@@ -508,3 +508,54 @@ class MatchmakingEngine:
                 )
             if pid not in self.state.players:
                 continue
+            prof = self.state.players[pid]
+            prof.total_matches += 1
+            if pid == winner_player_id:
+                prof.total_wins += 1
+            prof.total_score += m.scores.get(pid, 0)
+            prof.last_seen_at = time.time()
+
+
+# -----------------------------------------------------------------------------
+# Player and leaderboard
+# -----------------------------------------------------------------------------
+class PlayerRegistry:
+    def __init__(self, arena_engine: RoborunRobotankArenaEngine) -> None:
+        self.engine = arena_engine
+        self.state = arena_engine.state
+
+    def get_or_create_player(self, player_id: str, wallet_ref: str) -> PlayerProfile:
+        if not player_id or not wallet_ref:
+            raise ArenaEngineZeroDisallowed()
+        if player_id in self.state.players:
+            p = self.state.players[player_id]
+            p.last_seen_at = time.time()
+            return p
+        stats = self.state.chassis_stats.get(
+            player_id, ChassisStats()
+        )
+        prof = PlayerProfile(
+            player_id=player_id,
+            wallet_ref=wallet_ref,
+            total_score=0,
+            total_matches=0,
+            total_wins=0,
+            chassis_stats=stats,
+            last_seen_at=time.time(),
+        )
+        self.state.players[player_id] = prof
+        if player_id not in self.state.chassis_stats:
+            self.state.chassis_stats[player_id] = stats
+        return prof
+
+    def get_player(self, player_id: str) -> Optional[PlayerProfile]:
+        return self.state.players.get(player_id)
+
+    def get_leaderboard(self, top_n: int = LEADERBOARD_TOP_N) -> List[LeaderboardEntry]:
+        candidates = [
+            (p.total_score, p.player_id, p.wallet_ref, p.total_wins, p.total_matches)
+            for p in self.state.players.values()
+        ]
+        candidates.sort(key=lambda x: (-x[0], -x[3], -x[4]))
+        result = []
+        for rank, (score, pid, wallet, wins, matches) in enumerate(
