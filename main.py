@@ -559,3 +559,54 @@ class PlayerRegistry:
         candidates.sort(key=lambda x: (-x[0], -x[3], -x[4]))
         result = []
         for rank, (score, pid, wallet, wins, matches) in enumerate(
+            candidates[:top_n], start=1
+        ):
+            result.append(
+                LeaderboardEntry(
+                    rank=rank,
+                    player_id=pid,
+                    wallet_ref=wallet,
+                    total_score=score,
+                    wins=wins,
+                    matches=matches,
+                )
+            )
+        return result
+
+
+# -----------------------------------------------------------------------------
+# Validation and hex helpers (unique, no reuse from other contracts)
+# -----------------------------------------------------------------------------
+def _validate_eth_like_address(addr: str) -> bool:
+    if not addr or not isinstance(addr, str):
+        return False
+    addr = addr.strip()
+    if len(addr) != 42 or not addr.startswith("0x"):
+        return False
+    try:
+        int(addr[2:], 16)
+        return True
+    except ValueError:
+        return False
+
+
+def _validate_hex_salt(hex_str: str, min_len: int = 32) -> bool:
+    if not hex_str or not isinstance(hex_str, str):
+        return False
+    hex_str = hex_str.strip()
+    if not hex_str.startswith("0x") or len(hex_str) < min_len:
+        return False
+    try:
+        int(hex_str[2:], 16)
+        return True
+    except ValueError:
+        return False
+
+
+def _compute_cue_id(payload: str, nonce: int) -> str:
+    raw = f"{CHASSIS_MINT_SALT}{payload}{nonce}{MATCHMAKING_SEED}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+
+def _compute_arena_domain(arena_id: int) -> str:
+    raw = f"{ARENA_DOMAIN_SALT}{arena_id}{PLATFORM_VERSION_HASH}"
