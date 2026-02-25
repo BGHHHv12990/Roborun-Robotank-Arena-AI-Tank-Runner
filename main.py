@@ -1732,3 +1732,54 @@ def get_chassis_mint_salt() -> str:
 
 
 def get_matchmaking_seed() -> str:
+    return MATCHMAKING_SEED
+
+
+def get_max_platoon_size() -> int:
+    return MAX_PLATOON_SIZE
+
+
+def get_arena_cooldown_ticks() -> int:
+    return ARENA_COOLDOWN_TICKS
+
+
+def get_phase_duration_blocks() -> int:
+    return PHASE_DURATION_BLOCKS
+
+
+def get_max_phase_index() -> int:
+    return MAX_PHASE_INDEX
+
+
+def get_bounty_base_units() -> int:
+    return BOUNTY_BASE_UNITS
+
+
+def get_tick_modulus() -> int:
+    return TICK_MODULUS
+
+
+def get_vault_share_bps() -> int:
+    return VAULT_SHARE_BPS
+
+
+def get_control_share_bps() -> int:
+    return CONTROL_SHARE_BPS
+
+
+def get_score_per_checkpoint() -> int:
+    return SCORE_PER_CHECKPOINT
+
+
+def get_score_per_kill() -> int:
+    return SCORE_PER_KILL
+
+
+def get_damage_per_turret_fire() -> int:
+    return DAMAGE_PER_TURRET_FIRE
+
+
+def get_default_starting_battery() -> int:
+    return DEFAULT_STARTING_BATTERY
+
+
