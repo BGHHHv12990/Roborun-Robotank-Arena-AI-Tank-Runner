@@ -1477,3 +1477,54 @@ def health_check(platform: RoborunRobotankPlatform) -> Dict[str, Any]:
 
 def readiness_check(platform: RoborunRobotankPlatform) -> Dict[str, Any]:
     """Readiness for web: addresses set, not paused, constants valid."""
+    h = health_check(platform)
+    ready = (
+        h["ok"]
+        and not h["paused"]
+        and _validate_eth_like_address(OPERATOR_CORTEX_ADDRESS)
+    )
+    return {"ready": ready, "health": h}
+
+
+# -----------------------------------------------------------------------------
+# Mock HTTP / JSON API layer (for HuxleyGames or any web client)
+# -----------------------------------------------------------------------------
+def handle_api_request(
+    platform: RoborunRobotankPlatform,
+    method: str,
+    params: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Single entry for JSON API: method name + params dict.
+    Returns result dict or {"error": "..."}.
+    """
+    try:
+        if method == "config":
+            return platform.config_snapshot()
+        if method == "launch_arena":
+            return platform.api_launch_arena(
+                params.get("caller", OPERATOR_CORTEX_ADDRESS)
+            )
+        if method == "get_arena":
+            return platform.api_get_arena(params.get("arena_id", 0))
+        if method == "advance_phase":
+            return platform.api_advance_phase(
+                params.get("arena_id", 0),
+                params.get("caller", OPERATOR_CORTEX_ADDRESS),
+            )
+        if method == "assign_slot":
+            return platform.api_assign_slot(
+                params.get("arena_id", 0),
+                params.get("player_id", ""),
+                params.get("slot", 0),
+                params.get("caller", OPERATOR_CORTEX_ADDRESS),
+            )
+        if method == "fire_turret":
+            return platform.api_fire_turret(
+                params.get("arena_id", 0),
+                params.get("player_id", ""),
+                params.get("damage", DAMAGE_PER_TURRET_FIRE),
+                params.get("caller", OPERATOR_CORTEX_ADDRESS),
+            )
+        if method == "seed_bounty":
+            return platform.api_seed_bounty(
