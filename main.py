@@ -1630,3 +1630,54 @@ def handle_api_request(
         return {"error": "BatteryDepleted", "message": str(e)}
     except ArenaEngineCooldownActive as e:
         return {"error": "CooldownActive", "message": str(e)}
+    except ArenaEngineChassisNotFound as e:
+        return {"error": "ChassisNotFound", "message": str(e)}
+    except ArenaEngineMatchNotFound as e:
+        return {"error": "MatchNotFound", "message": str(e)}
+    except ArenaEngineMatchNotActive as e:
+        return {"error": "MatchNotActive", "message": str(e)}
+    except ArenaEngineInvalidAmount as e:
+        return {"error": "InvalidAmount", "message": str(e)}
+    except ArenaEngineZeroDisallowed as e:
+        return {"error": "ZeroDisallowed", "message": str(e)}
+    except Exception as e:
+        return {"error": "Internal", "message": str(e)}
+
+
+def list_api_methods() -> List[str]:
+    """Return all supported method names for handle_api_request."""
+    return [
+        "config", "launch_arena", "get_arena", "advance_phase", "assign_slot",
+        "fire_turret", "seed_bounty", "claim_bounty", "terminate_arena",
+        "flip_pause", "get_platoon_slot", "get_chassis_stats", "create_match",
+        "get_match", "add_match_score", "finish_match", "get_or_create_player",
+        "get_player", "get_leaderboard", "tick", "record_checkpoint",
+        "create_session", "get_session", "get_arena_summary", "get_match_summary",
+        "health", "readiness", "get_constants",
+    ]
+
+
+def handle_batch_api_request(
+    platform: RoborunRobotankPlatform,
+    requests: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Process a list of {method, params} and return list of results."""
+    return [
+        handle_api_request(platform, r.get("method", ""), r.get("params", {}))
+        for r in requests
+    ]
+
+
+def generate_demo_leaderboard_entries(count: int = 20) -> List[Dict[str, Any]]:
+    """Generate fake leaderboard entries for UI testing (no platform state change)."""
+    entries = []
+    for i in range(count):
+        entries.append({
+            "rank": i + 1,
+            "player_id": f"demo_{i}",
+            "wallet_ref": PLATFORM_VAULT_ADDRESS[:18] + "..." if i % 2 == 0 else REWARD_POOL_ADDRESS[:18] + "...",
+            "total_score": 1000 - i * 47 + (i % 3) * 20,
+            "wins": (i + 1) % 5,
+            "matches": (i + 1) * 2,
+        })
+    return entries
