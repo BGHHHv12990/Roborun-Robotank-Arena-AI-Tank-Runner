@@ -1783,3 +1783,54 @@ def get_default_starting_battery() -> int:
     return DEFAULT_STARTING_BATTERY
 
 
+def get_battery_recharge_at_checkpoint() -> int:
+    return BATTERY_RECHARGE_AT_CHECKPOINT
+
+
+def get_min_battery_to_fire() -> int:
+    return MIN_BATTERY_TO_FIRE
+
+
+def confirm_addresses_unique() -> bool:
+    """Confirm that this module uses its own address set (no cross-file reuse)."""
+    addrs = [
+        ARENA_TREASURY_ADDRESS,
+        PLATFORM_VAULT_ADDRESS,
+        REWARD_POOL_ADDRESS,
+        OPERATOR_CORTEX_ADDRESS,
+        ORACLE_NODE_ADDRESS,
+    ]
+    return len(addrs) == len(set(addrs)) and all(_validate_eth_like_address(a) for a in addrs)
+
+
+def confirm_hex_salts_unique() -> bool:
+    """Confirm that hex salts are unique within this module."""
+    salts = [
+        ARENA_DOMAIN_SALT,
+        PLATFORM_VERSION_HASH,
+        CHASSIS_MINT_SALT,
+        MATCHMAKING_SEED,
+    ]
+    return len(salts) == len(set(salts)) and all(_validate_hex_salt(s, 16) for s in salts)
+
+
+def format_arena_id_for_display(arena_id: int) -> str:
+    """Format arena id for UI (e.g. zero-padded)."""
+    return f"Arena-{arena_id:04d}"
+
+
+def format_match_id_short(match_id: str) -> str:
+    """Short display form of match_id."""
+    return match_id[:16] + "..." if len(match_id) > 16 else match_id
+
+
+def format_wallet_short(wallet: str) -> str:
+    """Short wallet for UI: 0x1234...abcd."""
+    if not wallet or len(wallet) < 12:
+        return wallet or ""
+    return f"{wallet[:6]}...{wallet[-4:]}"
+
+
+def score_display(score: int) -> str:
+    """Format score with commas for UI."""
+    return f"{score:,}"
