@@ -1834,3 +1834,54 @@ def format_wallet_short(wallet: str) -> str:
 def score_display(score: int) -> str:
     """Format score with commas for UI."""
     return f"{score:,}"
+
+
+def bps_to_percent(bps: int) -> float:
+    """Convert basis points to percent (e.g. 80 -> 80.0)."""
+    return (bps / 100.0) if 0 <= bps <= 10000 else 0.0
+
+
+def battery_percent_display(level: int) -> str:
+    """Battery level as percent string."""
+    return f"{min(100, max(0, level))}%"
+
+
+def phase_index_to_name(phase: int) -> str:
+    """Map phase index to name (alias for phase_label)."""
+    return phase_label(phase)
+
+
+def match_status_to_name(status: int) -> str:
+    """Map match status enum to string."""
+    names = ["Pending", "Active", "Finished", "Cancelled"]
+    return names[status] if 0 <= status < len(names) else "Unknown"
+
+
+def platform_metadata() -> Dict[str, Any]:
+    """Metadata for HuxleyGames or API discovery."""
+    return {
+        "name": "Roborun-Robotank-Arena-AI-Tank-Runner",
+        "version_hash": PLATFORM_VERSION_HASH,
+        "operator": OPERATOR_CORTEX_ADDRESS,
+        "vault": PLATFORM_VAULT_ADDRESS,
+        "treasury": ARENA_TREASURY_ADDRESS,
+        "reward_pool": REWARD_POOL_ADDRESS,
+        "oracle": ORACLE_NODE_ADDRESS,
+        "max_platoon_size": MAX_PLATOON_SIZE,
+        "arena_cooldown_ticks": ARENA_COOLDOWN_TICKS,
+        "vault_share_bps": VAULT_SHARE_BPS,
+        "control_share_bps": CONTROL_SHARE_BPS,
+    }
+
+
+def run_quick_smoke_test() -> Dict[str, Any]:
+    """Minimal smoke test: create platform, launch one arena, tick, return stats."""
+    p = create_platform()
+    op = OPERATOR_CORTEX_ADDRESS
+    aid = p.api_launch_arena(op)["arena_id"]
+    for _ in range(5):
+        p.api_tick()
+    return {
+        "ok": True,
+        "arena_id": aid,
+        "global_tick": p._engine.global_tick(),
