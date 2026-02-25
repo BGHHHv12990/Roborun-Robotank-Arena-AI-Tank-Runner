@@ -967,3 +967,54 @@ class RoborunRobotankPlatform:
                     "rank": e.rank,
                     "player_id": e.player_id,
                     "wallet_ref": e.wallet_ref,
+                    "total_score": e.total_score,
+                    "wins": e.wins,
+                    "matches": e.matches,
+                }
+                for e in entries
+            ]
+        }
+
+    def api_tick(self) -> Dict[str, Any]:
+        tick = self._engine.tick_forward()
+        return {"global_tick": tick}
+
+    def api_record_checkpoint(
+        self, arena_id: int, player_id: str, distance: int
+    ) -> Dict[str, Any]:
+        tick = self._engine.global_tick()
+        ok = self._checkpoints.record_checkpoint(arena_id, player_id, distance, tick)
+        return {"recorded": ok, "arena_id": arena_id, "player_id": player_id}
+
+    def api_get_recent_events(self, limit: int = 100) -> Dict[str, Any]:
+        return {"events": self._event_log.get_recent(limit)}
+
+    def api_get_events_by_type(
+        self, event_type: str, limit: int = 50
+    ) -> Dict[str, Any]:
+        return {"events": self._event_log.get_by_type(event_type, limit)}
+
+    def api_create_session(
+        self, player_id: str, arena_id: int, match_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        sid = self._sessions.create_session(player_id, arena_id, match_id)
+        return {"session_id": sid, "player_id": player_id, "arena_id": arena_id}
+
+    def api_touch_session(self, session_id: str) -> Dict[str, Any]:
+        ok = self._sessions.touch_session(session_id)
+        return {"ok": ok, "session_id": session_id}
+
+    def api_get_session(self, session_id: str) -> Dict[str, Any]:
+        out = self._sessions.get_session(session_id)
+        if out is None:
+            return {"error": "SessionNotFoundOrExpired"}
+        return out
+
+    def api_end_session(self, session_id: str) -> Dict[str, Any]:
+        self._sessions.end_session(session_id)
+        return {"session_id": session_id}
+
+    def api_cleanup_stale_sessions(self) -> Dict[str, Any]:
+        n = self._sessions.cleanup_stale()
+        return {"removed": n}
+
