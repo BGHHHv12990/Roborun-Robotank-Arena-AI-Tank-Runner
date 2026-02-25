@@ -1528,3 +1528,54 @@ def handle_api_request(
             )
         if method == "seed_bounty":
             return platform.api_seed_bounty(
+                params.get("arena_id", 0),
+                params.get("amount", 0),
+                params.get("caller", OPERATOR_CORTEX_ADDRESS),
+            )
+        if method == "claim_bounty":
+            return platform.api_claim_bounty(
+                params.get("arena_id", 0),
+                params.get("caller", OPERATOR_CORTEX_ADDRESS),
+            )
+        if method == "terminate_arena":
+            return platform.api_terminate_arena(
+                params.get("arena_id", 0),
+                params.get("caller", OPERATOR_CORTEX_ADDRESS),
+            )
+        if method == "flip_pause":
+            return platform.api_flip_pause(
+                params.get("caller", OPERATOR_CORTEX_ADDRESS),
+            )
+        if method == "get_platoon_slot":
+            return platform.api_get_platoon_slot(
+                params.get("arena_id", 0),
+                params.get("slot", 0),
+            )
+        if method == "get_chassis_stats":
+            return platform.api_get_chassis_stats(params.get("player_id", ""))
+        if method == "create_match":
+            return platform.api_create_match(
+                params.get("arena_id", 0),
+                params.get("participant_ids", []),
+                params.get("caller", OPERATOR_CORTEX_ADDRESS),
+            )
+        if method == "get_match":
+            return platform.api_get_match(params.get("match_id", ""))
+        if method == "add_match_score":
+            return platform.api_add_match_score(
+                params.get("match_id", ""),
+                params.get("player_id", ""),
+                params.get("points", 0),
+            )
+        if method == "finish_match":
+            return platform.api_finish_match(
+                params.get("match_id", ""),
+                params.get("winner_player_id"),
+            )
+        if method == "get_or_create_player":
+            return platform.api_get_or_create_player(
+                params.get("player_id", ""),
+                params.get("wallet_ref", ""),
+            )
+        if method == "get_player":
+            return platform.api_get_player(params.get("player_id", ""))
