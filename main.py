@@ -814,3 +814,54 @@ class CheckpointEngine:
 # Unified platform API (single entry for web)
 # -----------------------------------------------------------------------------
 class RoborunRobotankPlatform:
+    """Single entry point: arena engine + matchmaking + players + leaderboard."""
+
+    def __init__(self) -> None:
+        self._engine = RoborunRobotankArenaEngine()
+        self._matchmaking = MatchmakingEngine(self._engine)
+        self._players = PlayerRegistry(self._engine)
+        self._event_log = EventLog()
+        self._sessions = SessionManager()
+        self._checkpoints = CheckpointEngine(self._engine)
+        self._operator = OPERATOR_CORTEX_ADDRESS
+
+    @property
+    def engine(self) -> RoborunRobotankArenaEngine:
+        return self._engine
+
+    @property
+    def matchmaking(self) -> MatchmakingEngine:
+        return self._matchmaking
+
+    @property
+    def players(self) -> PlayerRegistry:
+        return self._players
+
+    def config_snapshot(self) -> Dict[str, Any]:
+        return {
+            "arena_treasury": ARENA_TREASURY_ADDRESS,
+            "platform_vault": PLATFORM_VAULT_ADDRESS,
+            "reward_pool": REWARD_POOL_ADDRESS,
+            "operator_cortex": OPERATOR_CORTEX_ADDRESS,
+            "oracle_node": ORACLE_NODE_ADDRESS,
+            "arena_domain_salt": ARENA_DOMAIN_SALT,
+            "platform_version_hash": PLATFORM_VERSION_HASH,
+            "max_platoon_size": MAX_PLATOON_SIZE,
+            "arena_cooldown_ticks": ARENA_COOLDOWN_TICKS,
+            "phase_duration_blocks": PHASE_DURATION_BLOCKS,
+            "max_phase_index": MAX_PHASE_INDEX,
+            "bounty_base_units": BOUNTY_BASE_UNITS,
+            "tick_modulus": TICK_MODULUS,
+            "vault_share_bps": VAULT_SHARE_BPS,
+            "control_share_bps": CONTROL_SHARE_BPS,
+        }
+
+    def api_launch_arena(self, caller: str) -> Dict[str, Any]:
+        aid = self._engine.launch_arena(caller)
+        return {"arena_id": aid, "global_tick": self._engine.global_tick()}
+
+    def api_get_arena(self, arena_id: int) -> Dict[str, Any]:
+        out = self._engine.get_arena(arena_id)
+        if out is None:
+            return {"error": "ArenaEngineArenaNotFound"}
+        return out
