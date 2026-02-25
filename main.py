@@ -1579,3 +1579,54 @@ def handle_api_request(
             )
         if method == "get_player":
             return platform.api_get_player(params.get("player_id", ""))
+        if method == "get_leaderboard":
+            return platform.api_get_leaderboard(
+                params.get("top_n", LEADERBOARD_TOP_N),
+            )
+        if method == "tick":
+            return platform.api_tick()
+        if method == "record_checkpoint":
+            return platform.api_record_checkpoint(
+                params.get("arena_id", 0),
+                params.get("player_id", ""),
+                params.get("distance", 0),
+            )
+        if method == "create_session":
+            return platform.api_create_session(
+                params.get("player_id", ""),
+                params.get("arena_id", 0),
+                params.get("match_id"),
+            )
+        if method == "get_session":
+            return platform.api_get_session(params.get("session_id", ""))
+        if method == "get_arena_summary":
+            return api_get_arena_summary(
+                platform,
+                params.get("arena_id", 0),
+            )
+        if method == "get_match_summary":
+            return api_get_match_summary(
+                platform,
+                params.get("match_id", ""),
+            )
+        if method == "health":
+            return health_check(platform)
+        if method == "readiness":
+            return readiness_check(platform)
+        if method == "get_constants":
+            return get_all_constants()
+        return {"error": f"Unknown method: {method}"}
+    except ArenaEngineNotOperator as e:
+        return {"error": "NotOperator", "message": str(e)}
+    except ArenaEngineArenaNotFound as e:
+        return {"error": "ArenaNotFound", "message": str(e)}
+    except ArenaEngineArenaPaused as e:
+        return {"error": "ArenaPaused", "message": str(e)}
+    except ArenaEnginePhaseLocked as e:
+        return {"error": "PhaseLocked", "message": str(e)}
+    except ArenaEnginePlatoonFull as e:
+        return {"error": "PlatoonFull", "message": str(e)}
+    except ArenaEngineBatteryDepleted as e:
+        return {"error": "BatteryDepleted", "message": str(e)}
+    except ArenaEngineCooldownActive as e:
+        return {"error": "CooldownActive", "message": str(e)}
