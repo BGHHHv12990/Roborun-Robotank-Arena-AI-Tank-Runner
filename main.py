@@ -1936,3 +1936,17 @@ def main() -> None:
     print("Launched arena_id:", aid)
     platform.api_advance_phase(aid, operator)
     print("Phase advanced:", platform._engine.get_arena(aid)["phase"])
+    platform.api_assign_slot(aid, "player_1", 0, operator)
+    platform.api_assign_slot(aid, "player_2", 1, operator)
+    platform._engine.tick_forward()
+    platform._engine.tick_forward()
+    platform.api_fire_turret(aid, "player_1", 15, operator)
+    print("Chassis stats player_1:", platform.api_get_chassis_stats("player_1"))
+    platform.api_seed_bounty(aid, 1_000_000, operator)
+    print("Bounty pool:", platform._engine.get_arena_bounty_pool(aid))
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()
+
