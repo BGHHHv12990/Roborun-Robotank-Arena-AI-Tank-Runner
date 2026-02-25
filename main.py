@@ -1324,3 +1324,54 @@ def get_arena_summary(platform: RoborunRobotankPlatform, arena_id: int) -> Optio
     if a is None:
         return None
     pool = platform._engine.get_arena_bounty_pool(arena_id)
+    cooldown = platform._engine.get_cooldown_until(arena_id)
+    tick = platform._engine.global_tick()
+    can_claim = (
+        not a["terminated"]
+        and tick >= cooldown
+        and pool > 0
+    )
+    return ArenaSummary(
+        arena_id=arena_id,
+        phase=a["phase"],
+        phase_label=phase_label(a["phase"]),
+        terminated=a["terminated"],
+        bounty_pool=pool,
+        cooldown_until=cooldown,
+        can_claim_bounty=can_claim,
+    )
+
+
+def get_match_summary(platform: RoborunRobotankPlatform, match_id: str) -> Optional[MatchSummary]:
+    m = platform._matchmaking.get_match(match_id)
+    if m is None:
+        return None
+    status_labels = ["Pending", "Active", "Finished", "Cancelled"]
+    st = m["status"]
+    label = status_labels[st] if 0 <= st < len(status_labels) else "Unknown"
+    return MatchSummary(
+        match_id=m["match_id"],
+        arena_id=m["arena_id"],
+        status=m["status"],
+        status_label=label,
+        participant_count=len(m["participants"]),
+        winner_player_id=m.get("winner_player_id"),
+        scores=dict(m.get("scores", {})),
+    )
+
+
+def api_get_arena_summary(platform: RoborunRobotankPlatform, arena_id: int) -> Dict[str, Any]:
+    s = get_arena_summary(platform, arena_id)
+    if s is None:
+        return {"error": "ArenaNotFound"}
+    return asdict(s)
+
+
+def api_get_match_summary(platform: RoborunRobotankPlatform, match_id: str) -> Dict[str, Any]:
+    s = get_match_summary(platform, match_id)
+    if s is None:
+        return {"error": "MatchNotFound"}
+    return asdict(s)
+
+
+def run_simulation_v2(
