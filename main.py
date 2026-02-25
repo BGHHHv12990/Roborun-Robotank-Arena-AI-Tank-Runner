@@ -1069,3 +1069,54 @@ class RoborunRobotankPlatform:
 
     def api_can_claim_bounty(self, arena_id: int) -> Dict[str, Any]:
         if arena_id not in self._engine.state.arenas:
+            return {"can_claim": False, "reason": "ArenaNotFound"}
+        ar = self._engine.state.arenas[arena_id]
+        if ar.terminated:
+            return {"can_claim": False, "reason": "ArenaTerminated"}
+        tick = self._engine.global_tick()
+        if tick < self._engine.get_cooldown_until(arena_id):
+            return {"can_claim": False, "reason": "CooldownActive"}
+        pool = self._engine.get_arena_bounty_pool(arena_id)
+        if pool <= 0:
+            return {"can_claim": False, "reason": "PoolEmpty"}
+        return {"can_claim": True, "pool": pool}
+
+
+# -----------------------------------------------------------------------------
+# Serialization for HTTP / JSON
+# -----------------------------------------------------------------------------
+def platform_to_json(platform: RoborunRobotankPlatform) -> str:
+    """Export minimal snapshot for persistence or debugging."""
+    state = platform._engine.state
+    data = {
+        "arena_counter": state.arena_counter,
+        "global_tick": state.global_tick,
+        "total_bounties_paid": state.total_bounties_paid,
+        "paused": state.paused,
+        "config": platform.config_snapshot(),
+    }
+    return json.dumps(data, indent=2)
+
+
+def create_platform() -> RoborunRobotankPlatform:
+    """Factory: one platform instance with all config pre-populated."""
+    return RoborunRobotankPlatform()
+
+
+def run_simulation(
+    platform: RoborunRobotankPlatform,
+    num_arenas: int = 3,
+    players_per_arena: int = 4,
+    ticks_per_arena: int = 50,
+) -> Dict[str, Any]:
+    """
+    Run a full simulation: launch arenas, assign players, create matches,
+    fire turrets, record checkpoints, seed and claim bounties, advance phases.
+    Returns summary stats.
+    """
+    operator = OPERATOR_CORTEX_ADDRESS
+    results = {"arenas_launched": 0, "matches_created": 0, "errors": []}
+    arena_ids = []
+    for i in range(num_arenas):
+        try:
+            r = platform.api_launch_arena(operator)
