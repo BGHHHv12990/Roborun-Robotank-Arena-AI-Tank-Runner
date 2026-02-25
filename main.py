@@ -1375,3 +1375,54 @@ def api_get_match_summary(platform: RoborunRobotankPlatform, match_id: str) -> D
 
 
 def run_simulation_v2(
+    platform: RoborunRobotankPlatform,
+    num_arenas: int = 5,
+    players_per_arena: int = 6,
+    ticks_per_phase: int = 30,
+    advance_phases: bool = True,
+) -> Dict[str, Any]:
+    """
+    Extended simulation: multiple arenas, phase advances, checkpoints, sessions,
+    leaderboard and event log checks.
+    """
+    operator = OPERATOR_CORTEX_ADDRESS
+    results = {
+        "arenas": [],
+        "matches": [],
+        "sessions_created": 0,
+        "checkpoints_recorded": 0,
+        "final_leaderboard_len": 0,
+        "errors": [],
+    }
+    for i in range(num_arenas):
+        try:
+            r = platform.api_launch_arena(operator)
+            aid = r["arena_id"]
+            results["arenas"].append(aid)
+            if advance_phases:
+                platform.api_advance_phase(aid, operator)
+        except Exception as e:
+            results["errors"].append({"launch_arena": str(e)})
+    all_players = []
+    for idx, aid in enumerate(results["arenas"]):
+        for j in range(players_per_arena):
+            pid = f"v2_player_{idx}_{j}"
+            all_players.append((pid, aid))
+            try:
+                platform.api_get_or_create_player(pid, REWARD_POOL_ADDRESS)
+                platform.api_assign_slot(aid, pid, j, operator)
+                sid = platform.api_create_session(pid, aid)
+                if sid:
+                    results["sessions_created"] += 1
+            except Exception as e:
+                results["errors"].append({"assign": str(e)})
+    for idx, aid in enumerate(results["arenas"]):
+        participants = [p[0] for p in all_players if p[1] == aid]
+        try:
+            r = platform.api_create_match(aid, participants, operator)
+            results["matches"].append(r["match_id"])
+        except Exception as e:
+            results["errors"].append({"create_match": str(e)})
+    for step in range(ticks_per_phase * (MAX_PHASE_INDEX + 1)):
+        platform.api_tick()
+        for (pid, aid) in all_players[: 2 * players_per_arena]:
