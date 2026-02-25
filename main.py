@@ -1426,3 +1426,54 @@ def run_simulation_v2(
     for step in range(ticks_per_phase * (MAX_PHASE_INDEX + 1)):
         platform.api_tick()
         for (pid, aid) in all_players[: 2 * players_per_arena]:
+            try:
+                platform.api_record_checkpoint(aid, pid, 100 + step * 50)
+                results["checkpoints_recorded"] += 1
+            except Exception:
+                pass
+        if step % TICK_MODULUS == 0 and step > 0:
+            for (pid, aid) in all_players[: 4]:
+                try:
+                    platform.api_fire_turret(aid, pid, DAMAGE_PER_TURRET_FIRE, operator)
+                except Exception:
+                    pass
+    for aid in results["arenas"]:
+        try:
+            platform.api_seed_bounty(aid, BOUNTY_BASE_UNITS, operator)
+        except Exception:
+            pass
+    for _ in range(ARENA_COOLDOWN_TICKS + 10):
+        platform.api_tick()
+    for aid in results["arenas"]:
+        try:
+            platform.api_claim_bounty(aid, operator)
+        except Exception:
+            pass
+    for match_id in results["matches"][:1]:
+        try:
+            platform.api_add_match_score(match_id, all_players[0][0], SCORE_PER_KILL * 3)
+            platform.api_finish_match(match_id, all_players[0][0])
+        except Exception:
+            pass
+    results["final_leaderboard_len"] = len(
+        platform.api_get_leaderboard(LEADERBOARD_TOP_N).get("entries", [])
+    )
+    results["global_tick"] = platform._engine.global_tick()
+    results["total_bounties_paid"] = platform._engine.total_bounties_paid()
+    return results
+
+
+def health_check(platform: RoborunRobotankPlatform) -> Dict[str, Any]:
+    """Check platform health: config validation, constants, and state sanity."""
+    config_errors = validate_platform_config()
+    return {
+        "ok": len(config_errors) == 0,
+        "config_errors": config_errors,
+        "arena_counter": platform._engine.arena_counter(),
+        "global_tick": platform._engine.global_tick(),
+        "paused": platform._engine.is_paused(),
+    }
+
+
+def readiness_check(platform: RoborunRobotankPlatform) -> Dict[str, Any]:
+    """Readiness for web: addresses set, not paused, constants valid."""
