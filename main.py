@@ -1018,3 +1018,54 @@ class RoborunRobotankPlatform:
         n = self._sessions.cleanup_stale()
         return {"removed": n}
 
+    def api_validate_address(self, addr: str) -> Dict[str, Any]:
+        return {"valid": _validate_eth_like_address(addr), "address": addr}
+
+    def api_validate_hex_salt(self, hex_str: str) -> Dict[str, Any]:
+        return {"valid": _validate_hex_salt(hex_str), "hex": hex_str[:64]}
+
+    def api_compute_cue_id(self, payload: str, nonce: int) -> Dict[str, Any]:
+        return {"cue_id": _compute_cue_id(payload, nonce)}
+
+    def api_compute_arena_domain(self, arena_id: int) -> Dict[str, Any]:
+        return {"domain_hash": _compute_arena_domain(arena_id)}
+
+    def api_batch_get_arenas(self, arena_ids: List[int]) -> Dict[str, Any]:
+        out = []
+        for aid in arena_ids:
+            a = self._engine.get_arena(aid)
+            out.append(a if a is not None else {"arena_id": aid, "error": "NotFound"})
+        return {"arenas": out}
+
+    def api_batch_get_platoon_slots(
+        self, arena_id: int, slots: List[int]
+    ) -> Dict[str, Any]:
+        out = []
+        for slot in slots:
+            s = self._engine.get_platoon_slot(arena_id, slot)
+            out.append(
+                s if s is not None else {"arena_id": arena_id, "slot": slot, "error": "Empty"}
+            )
+        return {"slots": out}
+
+    def api_batch_get_chassis_stats(
+        self, player_ids: List[str]
+    ) -> Dict[str, Any]:
+        out = []
+        for pid in player_ids:
+            c = self._engine.get_chassis_stats(pid)
+            out.append(
+                c if c is not None else {"player_id": pid, "error": "NotFound"}
+            )
+        return {"chassis_stats": out}
+
+    def api_get_phase_label(self, phase: int) -> Dict[str, Any]:
+        labels = [
+            "Idle", "Warmup", "Engaged", "Peak", "Closure", "Settle", "Terminal"
+        ]
+        if 0 <= phase < len(labels):
+            return {"phase": phase, "label": labels[phase]}
+        return {"phase": phase, "label": "Unknown"}
+
+    def api_can_claim_bounty(self, arena_id: int) -> Dict[str, Any]:
+        if arena_id not in self._engine.state.arenas:
