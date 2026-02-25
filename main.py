@@ -1222,3 +1222,54 @@ def get_all_constants() -> Dict[str, Any]:
         "SCORE_PER_KILL": SCORE_PER_KILL,
         "LEADERBOARD_TOP_N": LEADERBOARD_TOP_N,
         "SESSION_TIMEOUT_SECONDS": SESSION_TIMEOUT_SECONDS,
+    }
+
+
+def validate_platform_config() -> List[str]:
+    """Validate that all addresses and hex constants are well-formed. Returns list of errors."""
+    errors = []
+    for name, val in [
+        ("ARENA_TREASURY_ADDRESS", ARENA_TREASURY_ADDRESS),
+        ("PLATFORM_VAULT_ADDRESS", PLATFORM_VAULT_ADDRESS),
+        ("REWARD_POOL_ADDRESS", REWARD_POOL_ADDRESS),
+        ("OPERATOR_CORTEX_ADDRESS", OPERATOR_CORTEX_ADDRESS),
+        ("ORACLE_NODE_ADDRESS", ORACLE_NODE_ADDRESS),
+    ]:
+        if not _validate_eth_like_address(val):
+            errors.append(f"{name} is not a valid address")
+    for name, val in [
+        ("ARENA_DOMAIN_SALT", ARENA_DOMAIN_SALT),
+        ("PLATFORM_VERSION_HASH", PLATFORM_VERSION_HASH),
+        ("CHASSIS_MINT_SALT", CHASSIS_MINT_SALT),
+        ("MATCHMAKING_SEED", MATCHMAKING_SEED),
+    ]:
+        if not _validate_hex_salt(val, 16):
+            errors.append(f"{name} is not a valid hex salt")
+    if MAX_PLATOON_SIZE <= 0 or MAX_PLATOON_SIZE > 256:
+        errors.append("MAX_PLATOON_SIZE out of range")
+    if VAULT_SHARE_BPS + CONTROL_SHARE_BPS != 100:
+        errors.append("VAULT_SHARE_BPS + CONTROL_SHARE_BPS must equal 100")
+    return errors
+
+
+def export_leaderboard_csv(platform: RoborunRobotankPlatform, top_n: int = 100) -> str:
+    """Export leaderboard as CSV string."""
+    data = platform.api_get_leaderboard(top_n)
+    lines = ["rank,player_id,wallet_ref,total_score,wins,matches"]
+    for e in data.get("entries", []):
+        lines.append(
+            f"{e['rank']},{e['player_id']},{e['wallet_ref']},{e['total_score']},{e['wins']},{e['matches']}"
+        )
+    return "\n".join(lines)
+
+
+def import_players_bulk(
+    platform: RoborunRobotankPlatform,
+    entries: List[Tuple[str, str]],
+) -> Dict[str, Any]:
+    """Bulk register players. entries = [(player_id, wallet_ref), ...]."""
+    created = 0
+    errors = []
+    for player_id, wallet_ref in entries:
+        try:
+            platform.api_get_or_create_player(player_id, wallet_ref)
