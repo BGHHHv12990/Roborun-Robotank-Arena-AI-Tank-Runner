@@ -916,3 +916,54 @@ class RoborunRobotankPlatform:
     ) -> Dict[str, Any]:
         self._engine._require_operator(caller)
         match_id = self._matchmaking.create_match(arena_id, participant_ids)
+        return {"match_id": match_id, "arena_id": arena_id}
+
+    def api_get_match(self, match_id: str) -> Dict[str, Any]:
+        out = self._matchmaking.get_match(match_id)
+        if out is None:
+            return {"error": "MatchNotFound"}
+        return out
+
+    def api_add_match_score(
+        self, match_id: str, player_id: str, points: int
+    ) -> Dict[str, Any]:
+        self._matchmaking.add_match_score(match_id, player_id, points)
+        return {"match_id": match_id, "player_id": player_id}
+
+    def api_finish_match(
+        self, match_id: str, winner_player_id: Optional[str]
+    ) -> Dict[str, Any]:
+        self._matchmaking.finish_match(match_id, winner_player_id)
+        return {"match_id": match_id, "winner": winner_player_id}
+
+    def api_get_or_create_player(self, player_id: str, wallet_ref: str) -> Dict[str, Any]:
+        prof = self._players.get_or_create_player(player_id, wallet_ref)
+        return {
+            "player_id": prof.player_id,
+            "wallet_ref": prof.wallet_ref,
+            "total_score": prof.total_score,
+            "total_matches": prof.total_matches,
+            "total_wins": prof.total_wins,
+        }
+
+    def api_get_player(self, player_id: str) -> Dict[str, Any]:
+        prof = self._players.get_player(player_id)
+        if prof is None:
+            return {"error": "PlayerNotFound"}
+        return {
+            "player_id": prof.player_id,
+            "wallet_ref": prof.wallet_ref,
+            "total_score": prof.total_score,
+            "total_matches": prof.total_matches,
+            "total_wins": prof.total_wins,
+            "last_seen_at": prof.last_seen_at,
+        }
+
+    def api_get_leaderboard(self, top_n: int = LEADERBOARD_TOP_N) -> Dict[str, Any]:
+        entries = self._players.get_leaderboard(top_n)
+        return {
+            "entries": [
+                {
+                    "rank": e.rank,
+                    "player_id": e.player_id,
+                    "wallet_ref": e.wallet_ref,
