@@ -1273,3 +1273,54 @@ def import_players_bulk(
     for player_id, wallet_ref in entries:
         try:
             platform.api_get_or_create_player(player_id, wallet_ref)
+            created += 1
+        except Exception as e:
+            errors.append({"player_id": player_id, "error": str(e)})
+    return {"created": created, "errors": errors}
+
+
+def compute_vault_split(amount: int) -> Tuple[int, int]:
+    """Compute vault and control share from total amount (bps)."""
+    vault_part = (amount * VAULT_SHARE_BPS) // 100
+    control_part = amount - vault_part
+    return (vault_part, control_part)
+
+
+def phase_label(phase: int) -> str:
+    """Human-readable phase label."""
+    labels = [
+        "Idle", "Warmup", "Engaged", "Peak", "Closure", "Settle", "Terminal"
+    ]
+    return labels[phase] if 0 <= phase < len(labels) else "Unknown"
+
+
+# -----------------------------------------------------------------------------
+# Summary types and aggregate API (for HuxleyGames / web UI)
+# -----------------------------------------------------------------------------
+@dataclass
+class ArenaSummary:
+    arena_id: int
+    phase: int
+    phase_label: str
+    terminated: bool
+    bounty_pool: int
+    cooldown_until: int
+    can_claim_bounty: bool
+
+
+@dataclass
+class MatchSummary:
+    match_id: str
+    arena_id: int
+    status: int
+    status_label: str
+    participant_count: int
+    winner_player_id: Optional[str]
+    scores: Dict[str, int]
+
+
+def get_arena_summary(platform: RoborunRobotankPlatform, arena_id: int) -> Optional[ArenaSummary]:
+    a = platform._engine.get_arena(arena_id)
+    if a is None:
+        return None
+    pool = platform._engine.get_arena_bounty_pool(arena_id)
