@@ -763,3 +763,54 @@ class SessionManager:
                 if not self._player_to_sessions[pid]:
                     del self._player_to_sessions[pid]
 
+    def cleanup_stale(self) -> int:
+        now = time.time()
+        to_remove = [
+            sid for sid, s in self._sessions.items()
+            if now - s.last_activity_at > self._timeout
+        ]
+        for sid in to_remove:
+            self.end_session(sid)
+        return len(to_remove)
+
+
+# -----------------------------------------------------------------------------
+# Checkpoint and battery logic (runner game integration)
+# -----------------------------------------------------------------------------
+class CheckpointEngine:
+    def __init__(self, arena_engine: RoborunRobotankArenaEngine) -> None:
+        self.engine = arena_engine
+        self.state = arena_engine.state
+        self._checkpoint_distances: Dict[Tuple[int, str], int] = {}
+
+    def record_checkpoint(
+        self, arena_id: int, player_id: str, distance: int, current_tick: int
+    ) -> bool:
+        if arena_id not in self.state.arenas:
+            return False
+        key = (arena_id, player_id)
+        last = self._checkpoint_distances.get(key, 0)
+        if distance < last or distance - last < 100:
+            return False
+        self._checkpoint_distances[key] = distance
+        if player_id in self.state.chassis_stats:
+            self.state.chassis_stats[player_id].checkpoints_hit += 1
+        slot = self.state.unit_to_platoon_slot.get(player_id, -1)
+        if slot >= 0:
+            pk = self.engine._platoon_key(arena_id, slot)
+            if pk in self.state.platoon_slots:
+                pm = self.state.platoon_slots[pk]
+                pm.battery_level = min(
+                    DEFAULT_STARTING_BATTERY,
+                    pm.battery_level + BATTERY_RECHARGE_AT_CHECKPOINT,
+                )
+        return True
+
+    def get_last_checkpoint_distance(self, arena_id: int, player_id: str) -> int:
+        return self._checkpoint_distances.get((arena_id, player_id), 0)
+
+
+# -----------------------------------------------------------------------------
+# Unified platform API (single entry for web)
+# -----------------------------------------------------------------------------
+class RoborunRobotankPlatform:
