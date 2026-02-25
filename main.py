@@ -1171,3 +1171,54 @@ def run_simulation(
 
 
 def run_demo(platform: RoborunRobotankPlatform) -> None:
+    """Run a short demo: one arena, two players, one match, fire and finish."""
+    operator = OPERATOR_CORTEX_ADDRESS
+    platform.api_launch_arena(operator)
+    aid = platform._engine.arena_counter()
+    platform.api_get_or_create_player("demo_p1", PLATFORM_VAULT_ADDRESS)
+    platform.api_get_or_create_player("demo_p2", PLATFORM_VAULT_ADDRESS)
+    platform.api_assign_slot(aid, "demo_p1", 0, operator)
+    platform.api_assign_slot(aid, "demo_p2", 1, operator)
+    platform.api_create_match(aid, ["demo_p1", "demo_p2"], operator)
+    for _ in range(10):
+        platform.api_tick()
+    platform.api_fire_turret(aid, "demo_p1", 15, operator)
+    platform.api_fire_turret(aid, "demo_p2", 15, operator)
+    match_id = list(platform._engine.state.matches.keys())[-1]
+    platform.api_add_match_score(match_id, "demo_p1", SCORE_PER_CHECKPOINT)
+    platform.api_add_match_score(match_id, "demo_p2", SCORE_PER_KILL)
+    platform.api_finish_match(match_id, "demo_p1")
+    print("Demo finished. Leaderboard:", platform.api_get_leaderboard(10))
+
+
+def get_all_constants() -> Dict[str, Any]:
+    """Return all platform constants for documentation or UI."""
+    return {
+        "ARENA_TREASURY_ADDRESS": ARENA_TREASURY_ADDRESS,
+        "PLATFORM_VAULT_ADDRESS": PLATFORM_VAULT_ADDRESS,
+        "REWARD_POOL_ADDRESS": REWARD_POOL_ADDRESS,
+        "OPERATOR_CORTEX_ADDRESS": OPERATOR_CORTEX_ADDRESS,
+        "ORACLE_NODE_ADDRESS": ORACLE_NODE_ADDRESS,
+        "ARENA_DOMAIN_SALT": ARENA_DOMAIN_SALT,
+        "PLATFORM_VERSION_HASH": PLATFORM_VERSION_HASH,
+        "CHASSIS_MINT_SALT": CHASSIS_MINT_SALT,
+        "MATCHMAKING_SEED": MATCHMAKING_SEED,
+        "MAX_PLATOON_SIZE": MAX_PLATOON_SIZE,
+        "ARENA_COOLDOWN_TICKS": ARENA_COOLDOWN_TICKS,
+        "PHASE_DURATION_BLOCKS": PHASE_DURATION_BLOCKS,
+        "MAX_PHASE_INDEX": MAX_PHASE_INDEX,
+        "BOUNTY_BASE_UNITS": BOUNTY_BASE_UNITS,
+        "TICK_MODULUS": TICK_MODULUS,
+        "VAULT_SHARE_BPS": VAULT_SHARE_BPS,
+        "CONTROL_SHARE_BPS": CONTROL_SHARE_BPS,
+        "MAX_ACTIVE_ARENAS": MAX_ACTIVE_ARENAS,
+        "MAX_MATCHES_PER_ARENA": MAX_MATCHES_PER_ARENA,
+        "BATTERY_DRAIN_PER_TICK": BATTERY_DRAIN_PER_TICK,
+        "BATTERY_RECHARGE_AT_CHECKPOINT": BATTERY_RECHARGE_AT_CHECKPOINT,
+        "DEFAULT_STARTING_BATTERY": DEFAULT_STARTING_BATTERY,
+        "MIN_BATTERY_TO_FIRE": MIN_BATTERY_TO_FIRE,
+        "DAMAGE_PER_TURRET_FIRE": DAMAGE_PER_TURRET_FIRE,
+        "SCORE_PER_CHECKPOINT": SCORE_PER_CHECKPOINT,
+        "SCORE_PER_KILL": SCORE_PER_KILL,
+        "LEADERBOARD_TOP_N": LEADERBOARD_TOP_N,
+        "SESSION_TIMEOUT_SECONDS": SESSION_TIMEOUT_SECONDS,
