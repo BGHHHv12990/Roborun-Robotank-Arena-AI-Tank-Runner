@@ -1885,3 +1885,54 @@ def run_quick_smoke_test() -> Dict[str, Any]:
         "ok": True,
         "arena_id": aid,
         "global_tick": p._engine.global_tick(),
+        "arena_counter": p._engine.arena_counter(),
+    }
+
+
+# Addresses and hex used only in this file (unique, not reused elsewhere):
+#   ARENA_TREASURY_ADDRESS, PLATFORM_VAULT_ADDRESS, REWARD_POOL_ADDRESS,
+#   OPERATOR_CORTEX_ADDRESS, ORACLE_NODE_ADDRESS,
+#   ARENA_DOMAIN_SALT, PLATFORM_VERSION_HASH, CHASSIS_MINT_SALT, MATCHMAKING_SEED.
+
+
+def get_api_request_templates() -> Dict[str, Dict[str, Any]]:
+    """Return example params for each API method (for docs or UI)."""
+    return {
+        "launch_arena": {"caller": OPERATOR_CORTEX_ADDRESS},
+        "get_arena": {"arena_id": 1},
+        "advance_phase": {"arena_id": 1, "caller": OPERATOR_CORTEX_ADDRESS},
+        "assign_slot": {"arena_id": 1, "player_id": "player_1", "slot": 0, "caller": OPERATOR_CORTEX_ADDRESS},
+        "fire_turret": {"arena_id": 1, "player_id": "player_1", "damage": DAMAGE_PER_TURRET_FIRE, "caller": OPERATOR_CORTEX_ADDRESS},
+        "seed_bounty": {"arena_id": 1, "amount": 1000000, "caller": OPERATOR_CORTEX_ADDRESS},
+        "claim_bounty": {"arena_id": 1, "caller": OPERATOR_CORTEX_ADDRESS},
+        "terminate_arena": {"arena_id": 1, "caller": OPERATOR_CORTEX_ADDRESS},
+        "flip_pause": {"caller": OPERATOR_CORTEX_ADDRESS},
+        "get_platoon_slot": {"arena_id": 1, "slot": 0},
+        "get_chassis_stats": {"player_id": "player_1"},
+        "create_match": {"arena_id": 1, "participant_ids": ["p1", "p2"], "caller": OPERATOR_CORTEX_ADDRESS},
+        "get_match": {"match_id": "abc123"},
+        "add_match_score": {"match_id": "abc123", "player_id": "p1", "points": 50},
+        "finish_match": {"match_id": "abc123", "winner_player_id": "p1"},
+        "get_or_create_player": {"player_id": "player_1", "wallet_ref": PLATFORM_VAULT_ADDRESS},
+        "get_player": {"player_id": "player_1"},
+        "get_leaderboard": {"top_n": 100},
+        "record_checkpoint": {"arena_id": 1, "player_id": "player_1", "distance": 500},
+        "create_session": {"player_id": "player_1", "arena_id": 1},
+        "get_session": {"session_id": "sess-uuid"},
+        "get_arena_summary": {"arena_id": 1},
+        "get_match_summary": {"match_id": "abc123"},
+    }
+
+
+# -----------------------------------------------------------------------------
+# CLI / minimal runner (for testing)
+# -----------------------------------------------------------------------------
+def main() -> None:
+    platform = create_platform()
+    operator = OPERATOR_CORTEX_ADDRESS
+    print("Roborun-Robotank-Arena platform started.")
+    print("Config:", json.dumps(platform.config_snapshot(), indent=2))
+    aid = platform.api_launch_arena(operator)["arena_id"]
+    print("Launched arena_id:", aid)
+    platform.api_advance_phase(aid, operator)
+    print("Phase advanced:", platform._engine.get_arena(aid)["phase"])
