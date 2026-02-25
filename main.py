@@ -1120,3 +1120,54 @@ def run_simulation(
     for i in range(num_arenas):
         try:
             r = platform.api_launch_arena(operator)
+            arena_ids.append(r["arena_id"])
+            results["arenas_launched"] += 1
+        except Exception as e:
+            results["errors"].append({"stage": "launch_arena", "error": str(e)})
+    player_ids = [f"sim_player_{j}" for j in range(players_per_arena * num_arenas)]
+    for idx, aid in enumerate(arena_ids):
+        for slot, j in enumerate(range(players_per_arena)):
+            pid = player_ids[idx * players_per_arena + j]
+            try:
+                platform.api_get_or_create_player(pid, ARENA_TREASURY_ADDRESS)
+                platform.api_assign_slot(aid, pid, slot, operator)
+            except Exception as e:
+                results["errors"].append({"stage": "assign_slot", "error": str(e)})
+        try:
+            participants = [
+                player_ids[idx * players_per_arena + k]
+                for k in range(players_per_arena)
+            ]
+            r = platform.api_create_match(aid, participants, operator)
+            results["matches_created"] += 1
+        except Exception as e:
+            results["errors"].append({"stage": "create_match", "error": str(e)})
+    for _ in range(ticks_per_arena):
+        platform.api_tick()
+    for aid in arena_ids:
+        for slot in range(players_per_arena):
+            pid = player_ids[arena_ids.index(aid) * players_per_arena + slot]
+            try:
+                platform.api_fire_turret(aid, pid, DAMAGE_PER_TURRET_FIRE, operator)
+            except Exception:
+                pass
+        try:
+            platform.api_seed_bounty(aid, 500_000, operator)
+        except Exception:
+            pass
+    for aid in arena_ids:
+        for _ in range(ARENA_COOLDOWN_TICKS + 5):
+            platform.api_tick()
+        try:
+            platform.api_claim_bounty(aid, operator)
+        except Exception:
+            pass
+    results["global_tick"] = platform._engine.global_tick()
+    results["total_bounties_paid"] = platform._engine.total_bounties_paid()
+    results["leaderboard_count"] = len(
+        platform.api_get_leaderboard(LEADERBOARD_TOP_N).get("entries", [])
+    )
+    return results
+
+
+def run_demo(platform: RoborunRobotankPlatform) -> None:
