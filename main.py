@@ -865,3 +865,54 @@ class RoborunRobotankPlatform:
         if out is None:
             return {"error": "ArenaEngineArenaNotFound"}
         return out
+
+    def api_advance_phase(self, arena_id: int, caller: str) -> Dict[str, Any]:
+        phase = self._engine.advance_arena_phase(arena_id, caller)
+        return {"arena_id": arena_id, "phase": phase}
+
+    def api_assign_slot(
+        self, arena_id: int, player_id: str, slot: int, caller: str
+    ) -> Dict[str, Any]:
+        self._engine.assign_platoon_slot(arena_id, player_id, slot, caller)
+        return {"arena_id": arena_id, "player_id": player_id, "slot": slot}
+
+    def api_fire_turret(
+        self, arena_id: int, player_id: str, damage: int, caller: str
+    ) -> Dict[str, Any]:
+        tick = self._engine.global_tick()
+        self._engine.fire_turret(arena_id, player_id, damage, tick)
+        return {"arena_id": arena_id, "player_id": player_id, "tick": tick}
+
+    def api_seed_bounty(self, arena_id: int, amount: int, caller: str) -> Dict[str, Any]:
+        self._engine.seed_bounty_pool(arena_id, amount, caller)
+        return {"arena_id": arena_id, "new_pool": self._engine.get_arena_bounty_pool(arena_id)}
+
+    def api_claim_bounty(self, arena_id: int, caller: str) -> Dict[str, Any]:
+        paid = self._engine.claim_bounty(arena_id, caller)
+        return {"arena_id": arena_id, "amount": paid}
+
+    def api_terminate_arena(self, arena_id: int, caller: str) -> Dict[str, Any]:
+        self._engine.terminate_arena(arena_id, caller)
+        return {"arena_id": arena_id}
+
+    def api_flip_pause(self, caller: str) -> Dict[str, Any]:
+        paused = self._engine.flip_pause(caller)
+        return {"paused": paused}
+
+    def api_get_platoon_slot(self, arena_id: int, slot: int) -> Dict[str, Any]:
+        out = self._engine.get_platoon_slot(arena_id, slot)
+        if out is None:
+            return {"error": "slot_empty_or_invalid"}
+        return out
+
+    def api_get_chassis_stats(self, player_id: str) -> Dict[str, Any]:
+        out = self._engine.get_chassis_stats(player_id)
+        if out is None:
+            return {"error": "ChassisNotFound"}
+        return out
+
+    def api_create_match(
+        self, arena_id: int, participant_ids: List[str], caller: str
+    ) -> Dict[str, Any]:
+        self._engine._require_operator(caller)
+        match_id = self._matchmaking.create_match(arena_id, participant_ids)
