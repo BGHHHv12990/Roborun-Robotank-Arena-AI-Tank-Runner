@@ -1681,3 +1681,54 @@ def generate_demo_leaderboard_entries(count: int = 20) -> List[Dict[str, Any]]:
             "matches": (i + 1) * 2,
         })
     return entries
+
+
+def generate_demo_arena_list(count: int = 5) -> List[Dict[str, Any]]:
+    """Generate fake arena list for UI testing."""
+    return [
+        {
+            "arena_id": j + 1,
+            "phase": j % (MAX_PHASE_INDEX + 1),
+            "phase_label": phase_label(j % (MAX_PHASE_INDEX + 1)),
+            "terminated": False,
+            "bounty_pool": 100000 * (j + 1),
+            "cooldown_until": 0,
+            "can_claim_bounty": j % 2 == 0,
+        }
+        for j in range(count)
+    ]
+
+
+def get_operator_address() -> str:
+    return OPERATOR_CORTEX_ADDRESS
+
+
+def get_vault_address() -> str:
+    return PLATFORM_VAULT_ADDRESS
+
+
+def get_treasury_address() -> str:
+    return ARENA_TREASURY_ADDRESS
+
+
+def get_reward_pool_address() -> str:
+    return REWARD_POOL_ADDRESS
+
+
+def get_oracle_address() -> str:
+    return ORACLE_NODE_ADDRESS
+
+
+def get_arena_domain_salt() -> str:
+    return ARENA_DOMAIN_SALT
+
+
+def get_platform_version_hash() -> str:
+    return PLATFORM_VERSION_HASH
+
+
+def get_chassis_mint_salt() -> str:
+    return CHASSIS_MINT_SALT
+
+
+def get_matchmaking_seed() -> str:
